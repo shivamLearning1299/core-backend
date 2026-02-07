@@ -1,0 +1,80 @@
+// ===============================
+// DATASOURCE & GENERATOR
+// ===============================
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ===============================
+// AUTH — USERS
+// ===============================
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizations UserOrganization[]
+  refreshTokens RefreshToken[]
+}
+
+// ===============================
+// AUTH — ORGANIZATIONS
+// ===============================
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users UserOrganization[]
+}
+
+// ===============================
+// AUTH — USER ↔ ORG (RBAC)
+// ===============================
+model UserOrganization {
+  userId String
+  orgId  String
+  role   Role
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, orgId])
+}
+
+// ===============================
+// AUTH — REFRESH TOKENS
+// ===============================
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ===============================
+// ENUMS
+// ===============================
+enum Role {
+  ADMIN
+  MEMBER
+}

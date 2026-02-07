@@ -9,6 +9,12 @@ COPY package*.json ./
 # Install all dependencies (including devDependencies)
 RUN npm ci
 
+# Copy prisma schema
+COPY prisma ./prisma
+
+# Generate Prisma client
+RUN npx prisma generate
+
 # Copy source code
 COPY . .
 
@@ -28,13 +34,19 @@ ENV NODE_ENV=production
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy compiled output from builder
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Expose API port
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "dist/main.js"]
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Start the application with migrations
+ENTRYPOINT ["docker-entrypoint.sh"]
