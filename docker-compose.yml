@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: core-api
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - core-network
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: core-worker
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - core-network
+
+  socket:
+    build:
+      context: ./socket
+      dockerfile: Dockerfile
+    container_name: core-socket
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - core-network
+
+  postgres:
+    image: postgres:15
+    container_name: core-postgres
+    environment:
+      POSTGRES_USER: core_user
+      POSTGRES_PASSWORD: core_password
+      POSTGRES_DB: core_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - core-network
+
+  redis:
+    image: redis:7
+    container_name: core-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - core-network
+
+networks:
+  core-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
