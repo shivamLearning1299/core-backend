@@ -114,7 +114,7 @@ The `docker-entrypoint.sh` script runs:
 npx prisma migrate deploy
 ```
 
-### Production
+### Production Deployment
 
 For production deployments:
 
@@ -344,7 +344,7 @@ Prisma doesn't support automatic rollbacks. Options:
 - Uses `postgres` (container name) for database connection
 - Migrations run automatically via `docker-entrypoint.sh`
 
-### Production
+### Production Environment
 
 - Uses production DATABASE_URL
 - Migrations run with `prisma migrate deploy`
@@ -354,14 +354,14 @@ Prisma doesn't support automatic rollbacks. Options:
 
 ## Migration Commands Reference
 
-| Command | Description | When to Use |
-|---------|-------------|-------------|
-| `npx prisma migrate dev --name NAME` | Create & apply migration | Development |
-| `npx prisma migrate deploy` | Apply pending migrations | Production/Docker |
-| `npx prisma migrate status` | Check migration status | Debugging |
-| `npx prisma migrate reset` | Reset DB & reapply all | Local dev only |
-| `npx prisma migrate resolve --applied NAME` | Mark migration as applied | Fix sync issues |
-| `npx prisma generate` | Regenerate Prisma Client | After schema changes |
+| Command                                     | Description              | When to Use          |
+| ------------------------------------------- | ------------------------ | -------------------- |
+| `npx prisma migrate dev --name NAME`        | Create & apply migration | Development          |
+| `npx prisma migrate deploy`                 | Apply pending migrations | Production/Docker    |
+| `npx prisma migrate status`                 | Check migration status   | Debugging            |
+| `npx prisma migrate reset`                  | Reset DB & reapply all   | Local dev only       |
+| `npx prisma migrate resolve --applied NAME` | Mark migration as applied| Fix sync issues      |
+| `npx prisma generate`                       | Regenerate Prisma Client | After schema changes |
 
 ---
 
