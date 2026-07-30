@@ -6,14 +6,12 @@ WORKDIR /app
 # Copy dependency manifests
 COPY package*.json ./
 
-# Install all dependencies (including devDependencies)
-RUN npm ci
-
-# Copy prisma schema
+# Copy prisma schema (needed before npm ci: the postinstall script runs
+# `prisma generate`, which requires the schema to already be present)
 COPY prisma ./prisma
 
-# Generate Prisma client
-RUN npx prisma generate
+# Install all dependencies (including devDependencies)
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -32,6 +30,10 @@ ENV NODE_ENV=production
 
 # Copy dependency manifests
 COPY package*.json ./
+
+# Copy prisma schema (needed before npm ci: the postinstall script runs
+# `prisma generate`, which requires the schema to already be present)
+COPY prisma ./prisma
 
 # Install only production dependencies
 RUN npm ci --omit=dev
