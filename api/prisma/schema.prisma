@@ -41,6 +41,9 @@ model Organization {
   subscription  Subscription?
   channels      Channel[]
   queryHistory  QueryHistory[]
+  categories    Category[]
+  products      Product[]
+  shipments     ProductShipment[]
 }
 
 // ===============================
@@ -203,6 +206,70 @@ model QueryHistory {
 }
 
 // ===============================
+// CATALOG — CATEGORIES & PRODUCTS
+// ===============================
+model Category {
+  id          String   @id @default(uuid())
+  orgId       String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([orgId, name])
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  orgId        String
+  categoryId   String
+  sku          String
+  name         String
+  description  String?
+  priceCents   Int
+  stockQty     Int      @default(0)
+  reorderPoint Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org       Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  category  Category          @relation(fields: [categoryId], references: [id])
+  shipments ProductShipment[]
+
+  @@unique([orgId, sku])
+}
+
+// ===============================
+// CATALOG — INBOUND/OUTBOUND SHIPMENT PIPELINE
+// ===============================
+// A single model covers both directions: INBOUND = restock from a supplier,
+// not yet on the shelf; OUTBOUND = stock allocated to a customer delivery,
+// already deducted from stockQty. See CatalogService for the stock-effect
+// state machine (deltas only applied at the transitions that actually move
+// physical goods).
+model ProductShipment {
+  id          String            @id @default(uuid())
+  orgId       String
+  productId   String
+  direction   ShipmentDirection
+  status      ShipmentStatus    @default(PENDING)
+  quantity    Int
+  reference   String? // free-text: supplier name (inbound) or customer/order ref (outbound)
+  expectedAt  DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, direction, status])
+}
+
+// ===============================
 // ENUMS
 // ===============================
 enum Role {
@@ -240,4 +307,16 @@ enum SenderType {
 enum QueryStatus {
   OK
   ERROR
+}
+
+enum ShipmentDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum ShipmentStatus {
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELED
 }

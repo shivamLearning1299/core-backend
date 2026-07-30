@@ -23,6 +23,9 @@ type PrismaMock = {
   subscription: { create: jest.Mock };
   channel: { create: jest.Mock };
   message: { create: jest.Mock };
+  category: { create: jest.Mock };
+  product: { create: jest.Mock };
+  productShipment: { create: jest.Mock };
 };
 
 function sha256(raw: string): string {
@@ -50,6 +53,9 @@ describe('AuthService', () => {
       subscription: { create: jest.fn() },
       channel: { create: jest.fn() },
       message: { create: jest.fn() },
+      category: { create: jest.fn() },
+      product: { create: jest.fn() },
+      productShipment: { create: jest.fn() },
     };
     jwt = { sign: jest.fn().mockReturnValue('signed.jwt.token') };
     config = {
@@ -85,6 +91,12 @@ describe('AuthService', () => {
       });
       prisma.channel.create.mockResolvedValue({ id: 'channel-1' });
       prisma.message.create.mockResolvedValue({});
+      prisma.category.create.mockResolvedValue({ id: 'cat-1' });
+      prisma.product.create.mockImplementation((args: unknown) => {
+        const { sku } = (args as { data: { sku: string } }).data;
+        return Promise.resolve({ id: `prod-${sku}` });
+      });
+      prisma.productShipment.create.mockResolvedValue({});
       let createCall:
         | { data: { userId: string; tokenHash: string } }
         | undefined;
@@ -120,6 +132,9 @@ describe('AuthService', () => {
       expect(prisma.channel.create).toHaveBeenCalledTimes(4);
       // one welcome message, posted into the data-alerts channel only
       expect(prisma.message.create).toHaveBeenCalledTimes(1);
+      expect(prisma.category.create).toHaveBeenCalledTimes(2);
+      expect(prisma.product.create).toHaveBeenCalledTimes(4);
+      expect(prisma.productShipment.create).toHaveBeenCalledTimes(3);
       expect(result.accessToken).toBe('signed.jwt.token');
       expect(jwt.sign).toHaveBeenCalledWith({
         sub: 'user-1',
