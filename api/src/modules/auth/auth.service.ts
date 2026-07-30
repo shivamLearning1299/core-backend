@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
+import { provisionNewOrg } from '../../common/org-provisioning/provision-new-org';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -54,6 +55,7 @@ export class AuthService {
             role: Role.ADMIN,
           },
         });
+        await provisionNewOrg(tx, createdOrg.id, createdUser.id);
         return { user: createdUser, org: createdOrg };
       });
       user = result.user;

@@ -19,6 +19,10 @@ type PrismaMock = {
     findFirst: jest.Mock;
     update: jest.Mock;
   };
+  plan: { findUniqueOrThrow: jest.Mock };
+  subscription: { create: jest.Mock };
+  channel: { create: jest.Mock };
+  message: { create: jest.Mock };
 };
 
 function sha256(raw: string): string {
@@ -42,6 +46,10 @@ describe('AuthService', () => {
         findFirst: jest.fn(),
         update: jest.fn(),
       },
+      plan: { findUniqueOrThrow: jest.fn() },
+      subscription: { create: jest.fn() },
+      channel: { create: jest.fn() },
+      message: { create: jest.fn() },
     };
     jwt = { sign: jest.fn().mockReturnValue('signed.jwt.token') };
     config = {
@@ -65,6 +73,18 @@ describe('AuthService', () => {
       prisma.organization.create.mockResolvedValue({ id: 'org-1' });
       prisma.user.create.mockResolvedValue({ id: 'user-1' });
       prisma.userOrganization.create.mockResolvedValue({});
+      prisma.plan.findUniqueOrThrow.mockResolvedValue({ id: 'plan-pro' });
+      let subscriptionCreateCall:
+        | { data: { orgId: string; planId: string } }
+        | undefined;
+      prisma.subscription.create.mockImplementation((args: unknown) => {
+        subscriptionCreateCall = args as {
+          data: { orgId: string; planId: string };
+        };
+        return Promise.resolve({});
+      });
+      prisma.channel.create.mockResolvedValue({ id: 'channel-1' });
+      prisma.message.create.mockResolvedValue({});
       let createCall:
         | { data: { userId: string; tokenHash: string } }
         | undefined;
@@ -90,6 +110,16 @@ describe('AuthService', () => {
       expect(prisma.userOrganization.create).toHaveBeenCalledWith({
         data: { userId: 'user-1', orgId: 'org-1', role: Role.ADMIN },
       });
+      expect(prisma.plan.findUniqueOrThrow).toHaveBeenCalledWith({
+        where: { key: 'pro' },
+      });
+      expect(subscriptionCreateCall?.data).toMatchObject({
+        orgId: 'org-1',
+        planId: 'plan-pro',
+      });
+      expect(prisma.channel.create).toHaveBeenCalledTimes(4);
+      // one welcome message, posted into the data-alerts channel only
+      expect(prisma.message.create).toHaveBeenCalledTimes(1);
       expect(result.accessToken).toBe('signed.jwt.token');
       expect(jwt.sign).toHaveBeenCalledWith({
         sub: 'user-1',

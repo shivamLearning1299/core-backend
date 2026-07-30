@@ -22,8 +22,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organizations UserOrganization[]
-  refreshTokens RefreshToken[]
+  organizations  UserOrganization[]
+  refreshTokens  RefreshToken[]
+  channelMembers ChannelMember[]
+  messages       Message[]
+  queryHistory   QueryHistory[]
 }
 
 // ===============================
@@ -34,7 +37,10 @@ model Organization {
   name      String
   createdAt DateTime @default(now())
 
-  users UserOrganization[]
+  users         UserOrganization[]
+  subscription  Subscription?
+  channels      Channel[]
+  queryHistory  QueryHistory[]
 }
 
 // ===============================
@@ -72,9 +78,165 @@ model RefreshToken {
 }
 
 // ===============================
+// BILLING — PLAN CATALOG
+// ===============================
+model Plan {
+  id                String  @id @default(uuid())
+  key               String  @unique // "starter" | "pro" | "business" | "enterprise"
+  name              String
+  monthlyPriceCents Int? // null = custom/enterprise, ask sales
+  annualPriceCents  Int? // null = custom/enterprise
+  description       String
+  features          String[]
+  sortOrder         Int
+
+  subscriptions Subscription[]
+}
+
+// ===============================
+// BILLING — SUBSCRIPTIONS & INVOICES
+// ===============================
+model Subscription {
+  id               String             @id @default(uuid())
+  orgId            String             @unique // one active subscription per org
+  planId           String
+  status           SubscriptionStatus @default(ACTIVE)
+  billingCycle     BillingCycle       @default(MONTHLY)
+  currentPeriodEnd DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan     Plan         @relation(fields: [planId], references: [id])
+  invoices Invoice[]
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  subscriptionId String
+  amountCents    Int
+  status         InvoiceStatus
+  description    String
+  issuedAt       DateTime      @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+}
+
+// ===============================
+// MESSAGING — CHANNELS & MESSAGES
+// ===============================
+// Direct messages are modeled as a 2-member Channel with kind = DM rather
+// than a separate table — there's no team-invite flow yet, so DM channels
+// go unused (no second member to add) until that exists.
+model Channel {
+  id          String      @id @default(uuid())
+  orgId       String
+  kind        ChannelKind @default(CHANNEL)
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+
+  org      Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  members  ChannelMember[]
+  messages Message[]
+
+  @@unique([orgId, name])
+}
+
+model ChannelMember {
+  channelId  String
+  userId     String
+  lastReadAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, userId])
+}
+
+model Message {
+  id         String     @id @default(uuid())
+  channelId  String
+  senderType SenderType
+  senderId   String? // set when senderType = USER, null for AI/SYSTEM
+  text       String
+  aiTag      String? // "Alert" | "Answer" — set only for senderType = AI
+  resultJson Json? // {caption, rows:[{label,value}]} — set only for AI "Answer" messages
+
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  sender  User?   @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([channelId, createdAt])
+}
+
+// ===============================
+// AI QUERIES — HISTORY
+// ===============================
+// `sql`/`resultJson` are produced by a keyword-matched stand-in today, not a
+// real LLM — analytics-engine (FastAPI) will replace that generation step
+// later without changing this table's shape.
+model QueryHistory {
+  id         String      @id @default(uuid())
+  orgId      String
+  userId     String
+  question   String
+  status     QueryStatus
+  sql        String?
+  rowCount   Int?
+  resultJson Json?
+
+  createdAt DateTime @default(now())
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+}
+
+// ===============================
 // ENUMS
 // ===============================
 enum Role {
   ADMIN
   MEMBER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELING
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum InvoiceStatus {
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum ChannelKind {
+  CHANNEL
+  DM
+}
+
+enum SenderType {
+  USER
+  AI
+  SYSTEM
+}
+
+enum QueryStatus {
+  OK
+  ERROR
 }
