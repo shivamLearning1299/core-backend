@@ -12,6 +12,7 @@ const PLANS = [
     annualPriceCents: 0,
     description: 'For solo builders trying shivecom out.',
     features: ['500 AI queries / month', '1 connected data source', 'Community support', '7-day query history'],
+    queryLimit: 500,
     sortOrder: 0,
   },
   {
@@ -27,6 +28,7 @@ const PLANS = [
       'Priority email support',
       'Saved & scheduled queries',
     ],
+    queryLimit: 10000,
     sortOrder: 1,
   },
   {
@@ -42,6 +44,7 @@ const PLANS = [
       'Dedicated Slack channel',
       '99.9% uptime SLA',
     ],
+    queryLimit: 50000,
     sortOrder: 2,
   },
   {
@@ -51,6 +54,7 @@ const PLANS = [
     annualPriceCents: null,
     description: 'For large orgs with custom requirements.',
     features: ['Unlimited AI queries', 'Custom data residency', 'Dedicated infrastructure', 'Custom SLA & onboarding'],
+    queryLimit: null,
     sortOrder: 3,
   },
 ];

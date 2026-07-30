@@ -38,6 +38,11 @@ export class QueriesService {
     return { id: record.id, question, createdAt: record.createdAt, ...answer };
   }
 
+  async count(orgId: string): Promise<{ count: number }> {
+    const count = await this.prisma.queryHistory.count({ where: { orgId } });
+    return { count };
+  }
+
   async recent(orgId: string) {
     const rows = await this.prisma.queryHistory.findMany({
       where: { orgId },

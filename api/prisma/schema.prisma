@@ -88,6 +88,7 @@ model Plan {
   annualPriceCents  Int? // null = custom/enterprise
   description       String
   features          String[]
+  queryLimit        Int? // AI queries per month; null = unlimited (enterprise)
   sortOrder         Int
 
   subscriptions Subscription[]

@@ -26,4 +26,9 @@ export class QueriesController {
   recent(@Req() req: Request & { user: AuthenticatedUser }) {
     return this.queriesService.recent(req.user.orgId);
   }
+
+  @Get('count')
+  count(@Req() req: Request & { user: AuthenticatedUser }) {
+    return this.queriesService.count(req.user.orgId);
+  }
 }

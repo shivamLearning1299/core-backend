@@ -27,6 +27,7 @@ export class BillingService {
       annualPrice: centsToDollars(p.annualPriceCents),
       description: p.description,
       features: p.features,
+      queryLimit: p.queryLimit,
       sortOrder: p.sortOrder,
     }));
   }
@@ -47,6 +48,7 @@ export class BillingService {
       currentPeriodEnd: sub.currentPeriodEnd,
       monthlyPrice: centsToDollars(sub.plan.monthlyPriceCents),
       annualPrice: centsToDollars(sub.plan.annualPriceCents),
+      queryLimit: sub.plan.queryLimit,
     };
   }
 

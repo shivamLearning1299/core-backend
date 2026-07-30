@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { QueriesService } from './queries.service';
 
 type PrismaMock = {
-  queryHistory: { create: jest.Mock; findMany: jest.Mock };
+  queryHistory: { create: jest.Mock; findMany: jest.Mock; count: jest.Mock };
 };
 
 describe('QueriesService', () => {
@@ -12,7 +12,13 @@ describe('QueriesService', () => {
   let aiStub: { answer: jest.Mock };
 
   beforeEach(() => {
-    prisma = { queryHistory: { create: jest.fn(), findMany: jest.fn() } };
+    prisma = {
+      queryHistory: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        count: jest.fn(),
+      },
+    };
     aiStub = { answer: jest.fn() };
     service = new QueriesService(
       prisma as unknown as PrismaService,
@@ -52,6 +58,17 @@ describe('QueriesService', () => {
       });
       expect(result.id).toBe('q1');
       expect(result.matchedTopic).toBe('Top customers by lifetime value');
+    });
+  });
+
+  describe('count', () => {
+    it('returns the org-scoped total query count', async () => {
+      prisma.queryHistory.count.mockResolvedValue(42);
+      const result = await service.count('org-1');
+      expect(prisma.queryHistory.count).toHaveBeenCalledWith({
+        where: { orgId: 'org-1' },
+      });
+      expect(result).toEqual({ count: 42 });
     });
   });
 
